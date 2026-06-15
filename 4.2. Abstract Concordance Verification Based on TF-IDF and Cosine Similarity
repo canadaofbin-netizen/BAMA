@@ -1,0 +1,23 @@
+import fitz
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# 1. Ultra-fast text extraction using PyMuPDF(fitz) (scan only the first 3 pages with core info)
+doc = fitz.open(pdf_path)
+text = ''
+for page_num in range(min(3, doc.page_count)):
+    text += doc[page_num].get_text()
+doc.close()
+
+# 2. Machine learning-based text concordance verification (TF-IDF & Cosine Similarity)
+# Vectorize and compare the original Excel abstract (expected_abstract) and PDF text (text)
+vectorizer = TfidfVectorizer(stop_words='english')
+tfidf = vectorizer.fit_transform([expected_abstract, text])
+similarity = cosine_similarity(tfidf[0:1], tfidf[1:2])[0][0]
+
+# 3. Threshold-based automated classification
+if similarity > 0.15: 
+    # Considering the length difference between the abstract and body, >= 0.15 is deemed a perfect match
+    success_count += 1
+else:
+    low_similarity.append(f"[{art_id}] Similarity score: {similarity:.3f} (Mismatched)")
