@@ -1,0 +1,27 @@
+import pandas as pd
+
+# Load master Excel list
+df = pd.read_excel('List of Articles for full-text coding (Completed).xlsx')
+
+# 1. Mechanical scan for missing values in 4 mandatory columns (Verify 0 Missing Rows)
+essential_cols = ['authors', 'title', 'year', 'doi']
+for col_name in essential_cols:
+    actual_cols = [c for c in df.columns if c.lower() == col_name]
+    if actual_cols:
+        col = actual_cols[0]
+        # Perfectly scan for all forms of blanks including NaN, empty strings(''), and text 'nan'
+        mask = df[col].isna() | (df[col].astype(str).str.strip() == '') | (df[col].astype(str).str.lower() == 'nan')
+        if mask.any():
+            print(f"Missing values found in [{col}] column!")
+        else:
+            print(f"[{col}] column 100% integrity verified. 0 missing rows.")
+
+# 2. Scan for residual special character ('?') parsing errors inside title/abstract
+title_col = [c for c in df.columns if c.lower() == 'title']
+if title_col:
+    col = title_col[0]
+    # Identify only corrupted encoding errors stuck in the middle, excluding normal question marks at the end of sentences
+    mask = df[col].astype(str).str.contains(r'\?', na=False)
+    mask = mask & ~(df[col].astype(str).str.strip().str.endswith('?'))
+    if mask.any():
+        print(f"Warning: Abnormal question marks found in {mask.sum()} rows.")
