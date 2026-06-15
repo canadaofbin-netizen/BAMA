@@ -1,0 +1,17 @@
+# 1. Elsevier official API high-speed integration (download_elsevier_api.py)
+if '10.1016' in doi_str:
+    url = f"https://api.elsevier.com/content/article/doi/{doi_str}"
+    headers = {
+        "X-ELS-APIKey": api_key,
+        "Accept": "application/pdf" # Skip web rendering and go straight for binary
+    }
+    response = requests.get(url, headers=headers)
+    if 'application/pdf' in response.headers.get('Content-Type', ''):
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+
+# 2. Wiley TDM (Text and Data Mining) client integration (download_wiley_api.py)
+from wiley_tdm import TDMClient
+if doi_str.startswith('10.1111/') or doi_str.startswith('10.1002/'):
+    client = TDMClient(api_token=api_token, download_dir=pdf_dir)
+    result = client.download_pdf(doi_str) # Bypass paywall via mining privileges
