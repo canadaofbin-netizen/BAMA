@@ -1,0 +1,21 @@
+import requests
+
+# Multi-API cross-search (Unpaywall -> OpenAlex -> Semantic Scholar)
+oa_url = check_unpaywall_doi(doi_str)
+if not oa_url: oa_url = check_openalex_doi(doi_str)
+if not oa_url: oa_url = check_s2_doi(doi_str)
+
+# PDF binary integrity-verified download after securing the URL
+def download_pdf(url, dest_path):
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    r = requests.get(url, headers=headers, stream=True)
+    if r.status_code == 200:
+        chunk = r.raw.read(1024)
+        # Filter out HTML login/captcha pages and strictly allow actual PDFs
+        if chunk.startswith(b'%PDF'): 
+            with open(dest_path, 'wb') as f:
+                f.write(chunk)
+                for c in r.iter_content(chunk_size=8192):
+                    if c: f.write(c)
+            return True
+    return False
