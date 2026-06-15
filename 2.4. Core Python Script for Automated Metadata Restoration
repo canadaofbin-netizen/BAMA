@@ -1,0 +1,40 @@
+import urllib.request, urllib.parse, json
+import openpyxl
+
+# 1. Extract bibliographic information via API queries
+def fetch_metadata(queries):
+    results = {}
+    for art_id, q in queries.items():
+        url = 'https://api.crossref.org/works?query.title=' + urllib.parse.quote(q) + '&rows=1'
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response:
+                data = json.loads(response.read().decode())
+                items = data['message']['items']
+                if items:
+                    item = items[0]
+                    doi = item.get('DOI', 'N/A')
+                    title = item.get('title', [''])[0]
+                    authors = []
+                    for author in item.get('author', []):
+                        if 'family' in author and 'given' in author:
+                            authors.append(f"{author['family']} {author['given']}")
+                        elif 'family' in author:
+                            authors.append(author['family'])
+                    author_str = ', '.join(authors) if authors else 'Unknown Author'
+                    results[art_id] = {'doi': doi, 'author': author_str, 'title': title}
+        except Exception as e:
+            print(f'[{art_id}] Error:', e)
+    return results
+
+# 2. Automatically update the master Excel file with the parsed data
+def update_database(results, filepath):
+    wb = openpyxl.load_workbook(filepath)
+    ws = wb.active
+    for row in range(2, ws.max_row + 1):
+        cell_id = ws.cell(row, 1).value
+        if cell_id and int(cell_id) in results:
+            art_id = int(cell_id)
+            ws.cell(row, 2).value = results[art_id]['author'] # Insert Author
+            ws.cell(row, 5).value = results[art_id]['doi']    # Insert DOI
+    wb.save(filepath)
